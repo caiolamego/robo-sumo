@@ -91,30 +91,31 @@ void loop() {
     direita = 0;
   }
 
-if(frente == 1){
-  moveForward(200);
-}else if(frente == 0){
-  stopMotors();
-}
-if (direita == 1){
-  if( frente ==0){
-    turnRight(200);
-  }else if(frente == 1){
-   
+  // Lógica para o detector de linha
+  if (digitalRead(sensorPin) == HIGH) { // Linha detectada
+    moveBackward(200); // Dar ré
+    delay(500);        // Pequeno atraso para recuar
+    stopMotors();      // Parar após dar ré
+  } else {
+    // Lógica original para movimentação
+    if (frente == 1) {
+      moveForward(200);
+    } else if (frente == 0) {
+      stopMotors();
+    }
+    if (direita == 1) {
+      if (frente == 0) {
+        turnRight(200);
+      }
+    }
+    if (esquerda == 1) {
+      if (frente == 0) {
+        turnLeft(200);
+      }
+    }
   }
-}
-  if (esquerda == 1){
-  if( frente ==0){
-   
-    turnLeft(200);
-  }else if(frente == 1){
-   
-  }
-}
 
-  
   delay(200); // Pequeno atraso para estabilidade
-
 }
 
 // Função para medir a distância com um sensor ultrassônico
@@ -140,6 +141,17 @@ void moveForward(int speed) {
 
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speed);
+}
+
+// Função para mover o robô para trás
+void moveBackward(int speed) {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speed);
+
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
   analogWrite(ENB, speed);
 }
 
@@ -175,3 +187,4 @@ void stopMotors() {
   digitalWrite(IN4, LOW);
   analogWrite(ENB, 0);
 }
+
