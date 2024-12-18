@@ -1,117 +1,139 @@
-// Configuração dos pinos dos sensores ultrassônicos
-const int TRIG_FRONT = 8;  // Pino TRIG do sensor frontal
-const int ECHO_FRONT = 7;  // Pino ECHO do sensor frontal
+/** @source main.ino
+/**
+/** @ShortDescription
+/**
+/** @author Copyright(C) 2024
+/** Luciano A. do B. S. Machado
+/** 
+/** @version 1.1.0
+/**
+/** @License Copyright (C) 2024
+/** Luciano A. do B. S. Machado
+/** 
+/** Permission is granted to use, copy, modify, and distribute this software 
+/** for any purpose, provided that proper attribution to the author is maintained.
+/**
+/** This software is provided "as is", without warranty of any kind, express or
+/** implied, including but not limited to the warranties of merchantability,
+/** fitness for a particular purpose, and noninfringement. In no event shall
+/** the author be liable for any claim, damages, or other liability, whether in
+/** an action of contract, tort, or otherwise, arising from, out of, or in
+/** connection with the software or its use.
+/************************************************************************/
 
-// Sensores de linha
-const int s1_front = 4;
-const int s2_front = 5;
+#define SERIAL_NUMBER 9600
+#define TRIGNOMETRIC_FRONT_PIN 8
+#define ECHO_FRONT_PIN 7
+#define SENSOR0_PIN 4
+#define SENSOR1_PIN 5
+#define MOTOR0_VELOCITY_PWM_PIN 9
+#define MOTOR0_DIRECTION0_PIN 21
+#define MOTOR0_DIRECTION1_PIN 20
+#define MOTOR1_VELOCITY_PWM_PIN 10
+#define MOTOR1_DIRECTION0_PIN 19
+#define MOTOR1_DIRECTION1_PIN 18
 
-// Configuração dos pinos da ponte H
-// Motor A
-const int ENA = 9;    // Pino PWM para velocidade do Motor A
-const int IN1 = 21;   // Pino de direção 1 para Motor A
-const int IN2 = 20;   // Pino de direção 2 para Motor A
+void setup(void);
+void loop(void);
+static float measureDistance(int, int);
+static void moveForward(int);
+static static void turnRight(int);
+static void turnLeft(int);
+static void stopMotors(void);
 
-// Motor B
-const int ENB = 10;    // Pino PWM para velocidade do Motor B
-const int IN3 = 19;   // Pino de direção 1 para Motor B
-const int IN4 = 18;   // Pino de direção 2 para Motor B
+static float distanceFront=0.0;
+static int distancia=50;
 
-// Variáveis para armazenar as distâncias
-float distanceFront = 0.0;
-int distancia = 50;
+static bool frente=false;
+static bool encontrou=false;
+static bool linha=false;
+static bool in_line=false;
+static float PWM=25;
 
-// Variáveis de controle
-bool frente = false;
-bool encontrou = false;
-bool linha = false;
-bool in_line = false;
-float PWM = 25;
+static unsigned long tempoAnteriorLinha=0;
+static unsigned long tempoAnteriorMotor=0;
+static unsigned long intervaloLinha=1;
+static unsigned long intervaloMotor=500;
 
-// Controle de tempo
-unsigned long tempoAnteriorLinha = 0;
-unsigned long tempoAnteriorMotor = 0;
-unsigned long intervaloLinha = 1;
-unsigned long intervaloMotor = 500;
+void setup()
+{
 
-void setup() {
   // Configuração dos pinos da ponte H
-  pinMode(ENA, OUTPUT);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(ENB, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
+  pinMode(MOTOR0_VELOCITY_PWM_PIN, OUTPUT);
+  pinMode(MOTOR0_DIRECTION1_PIN, OUTPUT);
+  pinMode(MOTOR0_DIRECTION1_PIN, OUTPUT);
+  pinMode(MOTOR1_VELOCITY_PWM_PIN, OUTPUT);
+  pinMode(MOTOR1_DIRECTION0_PIN, OUTPUT);
+  pinMode(MOTOR1_DIRECTION1_PIN, OUTPUT);
 
   // Configuração dos pinos dos sensores ultrassônicos
-  pinMode(TRIG_FRONT, OUTPUT);
-  pinMode(ECHO_FRONT, INPUT);
-  pinMode(s1_front, INPUT);
-  pinMode(s2_front, INPUT_PULLUP);
+  pinMode(TRIGNOMETRIC_FRONT_PIN, OUTPUT);
+  pinMode(ECHO_FRONT_PIN, INPUT);
+  pinMode(SENSOR0_PIN, INPUT);
+  pinMode(SENSOR1_PIN, INPUT_PULLUP);
 
   // Inicializa a comunicação serial
-  Serial.begin(9600);
+  Serial.begin(SERIAL_NUMBER);
 
   // Inicializa os motores parados
   stopMotors();
 }
-bool objeto = 0;
-bool fim = 0;
-void loop() {
-  
+
+void loop()
+{
+  register bool objeto=0;
+  register bool fim=0;
+
   // Medir distâncias com os sensores
-  if(objeto == 0){
-  distanceFront = measureDistance(TRIG_FRONT, ECHO_FRONT);
-  if(distanceFront <= distancia){
-    objeto = 1;
+  if(!objeto)
+  {
+    distanceFront=measureDistance(TRIGNOMETRIC_FRONT_PIN, ECHO_FRONT_PIN);
+    if(distanceFront<=distancia){
+      objeto=1;
+    }
   }
-}
-  //PWM = 120;//(-3.1/2) * distanceFront + 255;
+  //PWM=120;//(-3.1/2) * distanceFront + 255;
 
   // Lógica do sensor de linha
-  int leituraSensor = digitalRead(s1_front);
-  if (leituraSensor == 1) {
-    
-      linha = true;
-    
-  } else {
-   
-    linha = false;
-  }
-if (linha){
-  fim = 1;
-  
-  stopMotors();
-}
-  if (linha && encontrou) {
-    in_line = true;
-  }
-
-  // Lógica de controle dos motores
-  if (!in_line && !fim) {
-    if (distanceFront <= distancia) {
-      frente = true;
-    } else {
-      frente = false;
-    }
-
-    if (frente) {
-      encontrou = true;
-      
-        moveForward(PWM);
-        
-      
-    } else {
-      turnRight(80);
-      encontrou = true;
-    }
-  } else {
+  int leituraSensor=digitalRead(SENSOR0_PIN);
+  if(leituraSensor==1)
+    linha=true;
+  else
+    linha=false;
+  if(linha)
+  {
+    fim=1;
     stopMotors();
   }
+  if(linha&&encontrou)
+    in_line=true;
+
+  // Lógica de controle dos motores
+  if((!in_line)&&(!fim))
+  {
+    if (distanceFront<=distancia)
+      frente=true;
+    else
+      frente=false;
+
+    if(frente)
+    {
+      encontrou=true;
+      moveForward(PWM);
+    }
+    else
+    {
+      turnRight(80);
+      encontrou=true;
+    }
+  }
+  else
+    stopMotors();
 }
 
 // Função para medir a distância com um sensor ultrassônico
-float measureDistance(int trigPin, int echoPin) {
+static float measureDistance(int trigPin, int echoPin)
+{
   // Gera um pulso de 10µs no pino TRIG
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -120,53 +142,57 @@ float measureDistance(int trigPin, int echoPin) {
   digitalWrite(trigPin, LOW);
 
   // Mede a duração do pulso ECHO em microssegundos
-  long duration = pulseIn(echoPin, HIGH);
+  long duration=pulseIn(echoPin, HIGH);
 
   // Calcula a distância em centímetros
   return duration * 0.034 / 2; // Velocidade do som: 0.034 cm/µs
 }
 
 // Função para mover o robô para frente
-void moveForward(int speed) {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, speed);
+static void moveForward(int speed)
+{
+  digitalWrite(MOTOR0_DIRECTION1_PIN, HIGH);
+  digitalWrite(MOTOR0_DIRECTION1_PIN, LOW);
+  analogWrite(MOTOR0_VELOCITY_PWM_PIN, speed);
 
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, speed);
+  digitalWrite(MOTOR1_DIRECTION0_PIN, HIGH);
+  digitalWrite(MOTOR1_DIRECTION1_PIN, LOW);
+  analogWrite(MOTOR1_VELOCITY_PWM_PIN, speed);
 }
 
 // Função para virar o robô para a direita
-void turnRight(int speed) {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  analogWrite(ENA, speed);
+static void turnRight(int speed)
+{
+  digitalWrite(MOTOR0_DIRECTION1_PIN, LOW);
+  digitalWrite(MOTOR0_DIRECTION1_PIN, HIGH);
+  analogWrite();
 
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, speed);
+  digitalWrite(MOTOR1_DIRECTION0_PIN, HIGH);
+  digitalWrite(MOTOR1_DIRECTION1_PIN, LOW);
+  analogWrite(MOTOR1_VELOCITY_PWM_PIN, speed);
 }
 
 // Função para virar o robô para a esquerda
-void turnLeft(int speed) {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  analogWrite(ENA, speed);
+static void turnLeft(int speed)
+{
+  digitalWrite(MOTOR0_DIRECTION1_PIN, LOW);
+  digitalWrite(MOTOR0_DIRECTION1_PIN, HIGH);
+  analogWrite();
 
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, HIGH);
-  analogWrite(ENB, speed);
+  digitalWrite(MOTOR1_DIRECTION0_PIN, LOW);
+  digitalWrite(MOTOR1_DIRECTION1_PIN, HIGH);
+  analogWrite(MOTOR1_VELOCITY_PWM_PIN, speed);
 }
 
 // Função para parar os motores
-void stopMotors() {
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, 0);
+static void stopMotors(void)
+{
+  digitalWrite(MOTOR0_DIRECTION1_PIN, LOW);
+  digitalWrite(MOTOR0_DIRECTION1_PIN, LOW);
+  analogWrite(MOTOR0_VELOCITY_PWM_PIN, 0);
 
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, 0);
+  digitalWrite(MOTOR1_DIRECTION0_PIN, LOW);
+  digitalWrite(MOTOR1_DIRECTION1_PIN, LOW);
+  analogWrite(MOTOR1_VELOCITY_PWM_PIN, 0);
 }
 
