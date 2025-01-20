@@ -19,7 +19,7 @@ const int IN4 = 18;   // Pino de direção 2 para Motor B
 
 // Variáveis para armazenar as distâncias
 float distanceFront = 0.0; // Armazena a distância média medida pelo sensor frontal
-const int distancia = 30;  // Distância limite para detectar um objeto (em cm)
+const int distancia = 150;  // Distância limite para detectar um objeto (em cm)
 
 // Variáveis de controle
 bool frente = false;    // Indica se o robô deve avançar
@@ -28,7 +28,9 @@ bool linha = false;     // Indica se o sensor detectou uma linha
 bool in_line = false;   // Indica se o robô está sobre a linha
 float PWM = 180;        // Valor do PWM para controlar a velocidade dos motores
 int reset = 0;          // Flag para reiniciar os estados do robô
-
+bool objeto = false; // Indica se um objeto está próximo
+bool fim = false;    // Indica se o robô chegou ao fim do percurso
+bool parar = 0;
 // Controle de tempo
 unsigned long tempoAnteriorLinha = 0; // Tempo anterior para verificar linha
 unsigned long tempoAnteriorMotor = 0; // Tempo anterior para controle do motor
@@ -59,25 +61,13 @@ void setup() {
 }
 
 // Variáveis adicionais
-bool objeto = false; // Indica se um objeto está próximo
-bool fim = false;    // Indica se o robô chegou ao fim do percurso
 
 void loop() {
   // Enquanto não houver objeto próximo
   while (!objeto) {
-    float totalDistance = 0;
-    // Mede 5 valores consecutivos de distância
-    for (int i = 0; i < 5; i++) {
-      totalDistance += measureDistance(TRIG_FRONT, ECHO_FRONT);
-      delay(50); // Pequeno atraso entre medições
-    }
-    distanceFront = totalDistance / 5.0; // Calcula a média das medições
+     objeto = verificaObjeto(TRIG_FRONT, ECHO_FRONT, distancia);
 
-    // Verifica se há objeto à frente
-    if (distanceFront <= distancia) {
-      objeto = true;
-    }
-
+   
     turnRight(80); // Se não houver objeto, continua girando à direita
   }
 
@@ -103,7 +93,8 @@ void loop() {
       encontrou = true;
     }
   } else {
-    stopMotors(); // Para os motores se estiver na linha ou fim do percurso
+    retornar();
+    // Para os motores se estiver na linha ou fim do percurso
     reset = 1;    // Sinaliza para reiniciar os estados
   }
 
@@ -116,7 +107,54 @@ void loop() {
     in_line = false;
     reset = 0;
     fim = false; 
+    parar = 0;
   }
+  
+}
+
+void retornar() {
+  float Distance = calculaDistanciaMedia(TRIG_FRONT, ECHO_FRONT);
+  float Distance_anterior = Distance;
+  bool objetonafrente = verificaObjeto(TRIG_FRONT, ECHO_FRONT, distancia);
+  if (!objetonafrente && !parar){
+    moveBackwards(255);
+    delay(500);
+    stopMotors(); 
+    parar = 1;
+  }else if(!parar){
+    while(Distance < Distance_anterior + 5){
+      Distance = calculaDistanciaMedia(TRIG_FRONT, ECHO_FRONT);
+      moveBackwards(80);
+    }
+    parar = 1;
+    while(verificaObjeto(TRIG_FRONT, ECHO_FRONT, distancia)){
+      turnRight(80);
+    }
+    stopMotors(); 
+  }
+
+
+
+
+
+  
+}// Função que retorna a distância média em cm
+float calculaDistanciaMedia(int trigPin, int echoPin) {
+  float totalDistance = 0;
+
+  // Mede 5 valores consecutivos de distância
+  for (int i = 0; i < 5; i++) {
+    totalDistance += measureDistance(trigPin, echoPin);
+    delay(50); // Pequeno atraso entre medições
+  }
+
+  return totalDistance / 5.0; // Retorna a média das medições
+}
+
+// Função que verifica se há um objeto dentro de uma distância limite
+bool verificaObjeto(int trigPin, int echoPin, float distanciaLimite) {
+  float distanciaMedia = calculaDistanciaMedia(trigPin, echoPin);
+  return (distanciaMedia <= distanciaLimite);
 }
 
 // Função para medir a distância com sensor ultrassônico
@@ -141,6 +179,18 @@ void moveForward(int speed) {
   digitalWrite(IN4, LOW);
   analogWrite(ENB, speed);
 }
+
+// Função para mover o robô para tras
+void moveBackwards(int speed) {
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speed);
+
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speed);
+}
+
 
 // Função para virar à direita
 void turnRight(int speed) {
