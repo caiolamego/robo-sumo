@@ -4,7 +4,7 @@ const int ECHO_FRONT = 14;  // Pino ECHO do sensor frontal (recebe o eco dos pul
 
 // Sensores de linha
 const int s1_front = 16;  // Pino do sensor de linha frontal 1
-const int s2_front = 5;   // Pino do sensor de linha frontal 2
+const int s2_front = 8;   // Pino do sensor de linha frontal 2
 
 // Configuração dos pinos da ponte H (controla os motores)
 // Motor A
@@ -72,8 +72,11 @@ void loop() {
   }
 
   // Verifica o estado do sensor de linha
-  int leituraSensor = digitalRead(s1_front);
-  linha = (leituraSensor == 1); // Atualiza a flag "linha"
+  int leituraSensor1 = digitalRead(s1_front);
+  int leituraSensor2 = digitalRead(s2_front);
+  if(leituraSensor1 && leituraSensor2){
+    linha = true;
+  }
 
   // Se detectar uma linha, para o robô
   if (linha) {
